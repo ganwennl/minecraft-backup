@@ -1,0 +1,8 @@
+101 ICON "assets/app.ico"
+102 ICON "assets/backup.ico"
+103 ICON "assets/restore.ico"
+104 ICON "assets/folder.ico"
+105 ICON "assets/file.ico"
+106 ICON "assets/refresh.ico"
+107 ICON "assets/exit.ico"
+1 24 "app.manifest"

@@ -1,0 +1,16 @@
+# Build outputs
+*.exe
+*.test
+*.syso
+build/
+dist/
+
+# Logs and local files
+*.log
+.env
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
