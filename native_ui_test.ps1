@@ -1,3 +1,5 @@
+param([string] $ExePath = (Join-Path $PSScriptRoot 'Minecraft地图备份.exe'))
+
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -118,9 +120,10 @@ function Assert-TreeHashes([string] $Root, [hashtable] $Expected) {
 }
 
 $repo = $PSScriptRoot
-$exe = Join-Path $repo 'Minecraft地图备份.exe'
+$exe = [IO.Path]::GetFullPath($ExePath)
 Assert-True (Test-Path -LiteralPath $exe -PathType Leaf) '请先执行 build.ps1 生成程序。'
-$running = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -eq 'Minecraft地图备份' })
+$testedProcessName = [IO.Path]::GetFileNameWithoutExtension($exe)
+$running = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -in @('Minecraft地图备份', $testedProcessName) })
 Assert-True ($running.Count -eq 0) '已有地图备份程序运行；请先关闭后运行隔离测试。'
 $fixture = Join-Path $repo ('build\ui-smoke-' + [Guid]::NewGuid().ToString('N'))
 $roaming = Join-Path $fixture 'Roaming'

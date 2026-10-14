@@ -1,4 +1,8 @@
-param([switch] $TestHost, [string] $ResumeFixture)
+param(
+    [switch] $TestHost,
+    [string] $ResumeFixture,
+    [string] $ExePath = (Join-Path $PSScriptRoot 'Minecraft地图备份.exe')
+)
 
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 Set-StrictMode -Version Latest
@@ -161,12 +165,13 @@ function Assert-ArchiveWorldBytes([string] $ArchiveName, [byte[]] $Expected) {
     } finally { $zip.Dispose() }
 }
 
-$exe = if ($TestHost) { Join-Path $PSScriptRoot 'build\MinecraftNativeIntegration.test.exe' } else { Join-Path $PSScriptRoot 'Minecraft地图备份.exe' }
+$exe = if ($TestHost) { Join-Path $PSScriptRoot 'build\MinecraftNativeIntegration.test.exe' } else { [IO.Path]::GetFullPath($ExePath) }
+$testedProcessName = [IO.Path]::GetFileNameWithoutExtension($exe)
 Assert-Auto (Test-Path -LiteralPath $exe -PathType Leaf) '请先构建程序。'
 $alreadyRunning = @(if ($TestHost) {
     Get-Process -Name 'Minecraft地图备份', 'MinecraftNativeIntegration.test' -ErrorAction SilentlyContinue
 } else { Get-Process -ErrorAction SilentlyContinue | Where-Object {
-    if ($_.ProcessName -in @('Minecraft地图备份', 'Minecraft.Windows')) { return $true }
+    if ($_.ProcessName -in @('Minecraft地图备份', $testedProcessName, 'Minecraft.Windows')) { return $true }
     if ($_.ProcessName -ne 'Minecraft') { return $false }
     # Current Store Launcher uses Minecraft.exe too; it is not the game.
     try { return $_.Path -notmatch '(?i)[\\/]WindowsApps[\\/]Microsoft\.4297127D64EC6_[^\\/]+[\\/]Minecraft\.exe$' }
