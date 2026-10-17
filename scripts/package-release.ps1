@@ -1,10 +1,10 @@
 #requires -Version 7.0
-param([string] $OutputDirectory = (Join-Path $PSScriptRoot 'dist'))
+param([string] $OutputDirectory = (Join-Path (Split-Path -Parent $PSScriptRoot) 'dist'))
 
 $OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-$sourceRoot = $PSScriptRoot
+$sourceRoot = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $sourceRoot
 $utf8 = [Text.UTF8Encoding]::new($false)
 $version = (Get-Content -LiteralPath (Join-Path $sourceRoot 'VERSION') -Encoding UTF8 -Raw).Trim()
@@ -23,13 +23,13 @@ if ($LASTEXITCODE -ne 0) { throw '无法读取源码 HEAD。' }
 # This identifies an authorized working-tree build even before its final commit.
 function Get-SourceRecords {
     $names = @(Get-ChildItem -LiteralPath $sourceRoot -File | Where-Object {
-        $_.Extension -in @('.go', '.ps1', '.md', '.txt', '.rc', '.manifest') -or
-        $_.Name -in @('go.mod', 'go.sum', 'VERSION', 'LICENSE', '.gitignore')
+        $_.Extension -in @('.ps1', '.md') -or $_.Name -in @('go.mod', 'go.sum', 'VERSION', 'LICENSE', '.gitignore')
     } | ForEach-Object Name)
-    $names += @(Get-ChildItem -LiteralPath (Join-Path $sourceRoot 'assets') -File -Recurse | ForEach-Object {
-        [IO.Path]::GetRelativePath($sourceRoot, $_.FullName).Replace('\', '/')
-    })
-    $names += 'scripts/build-icons.cjs'
+    foreach ($folder in @('cmd', 'assets', 'resources', 'scripts', 'tests', 'packaging', 'docs', 'third_party')) {
+        $names += @(Get-ChildItem -LiteralPath (Join-Path $sourceRoot $folder) -File -Recurse | ForEach-Object {
+            [IO.Path]::GetRelativePath($sourceRoot, $_.FullName).Replace('\', '/')
+        })
+    }
     return @($names | Sort-Object -Unique | ForEach-Object {
         $path = Join-Path $sourceRoot $_
         $item = Get-Item -LiteralPath $path
@@ -63,8 +63,14 @@ New-Item -ItemType Directory -Path $staging | Out-Null
 $portableExe = Join-Path $staging 'Minecraft地图备份.exe'
 & (Join-Path $sourceRoot 'build.ps1') -OutputPath $portableExe
 Copy-Item -LiteralPath $portableExe -Destination $exeAsset
-$documents = @('README.md', 'README.en.md', 'CHANGELOG.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'GO-LICENSE.txt', 'VERSION', 'install-shortcuts.ps1')
-foreach ($name in $documents) { Copy-Item -LiteralPath (Join-Path $sourceRoot $name) -Destination (Join-Path $staging $name) }
+$documents = @('README.md', 'docs/usage.md', 'docs/usage.en.md', 'docs/development.md', 'CHANGELOG.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'third_party/Go-LICENSE.txt', 'VERSION', 'packaging/windows/install-shortcuts.ps1')
+foreach ($name in $documents) {
+    $destinationName = if ($name -eq 'packaging/windows/install-shortcuts.ps1') { 'install-shortcuts.ps1' } else { $name }
+    $destination = Join-Path $staging $destinationName
+    New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $sourceRoot $name) -Destination $destination
+}
+$documents = @($documents | ForEach-Object { if ($_ -eq 'packaging/windows/install-shortcuts.ps1') { 'install-shortcuts.ps1' } else { $_ } })
 $exeHash = (Get-FileHash -LiteralPath $exeAsset -Algorithm SHA256).Hash.ToLowerInvariant()
 $info = [ordered]@{
     version = $version
@@ -85,7 +91,7 @@ Add-Type -AssemblyName System.IO.Compression
 $zip = [IO.Compression.ZipFile]::OpenRead($zipAsset)
 try {
     $expected = @('Minecraft地图备份.exe', 'RELEASE-INFO.json') + $documents
-    if ($zip.Entries.Count -ne $expected.Count) { throw 'ZIP 文件数不符。' }
+    if (@($zip.Entries | Where-Object { $_.Name }).Count -ne $expected.Count) { throw 'ZIP 文件数不符。' }
     foreach ($name in $expected) {
         $entry = $zip.GetEntry($name)
         if ($null -eq $entry) { throw "ZIP 缺少文件：$name" }

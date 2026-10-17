@@ -5,4 +5,4 @@
 105 ICON "assets/file.ico"
 106 ICON "assets/refresh.ico"
 107 ICON "assets/exit.ico"
-1 24 "app.manifest"
+1 24 "resources/windows/app.manifest"

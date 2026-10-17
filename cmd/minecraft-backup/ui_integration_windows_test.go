@@ -74,7 +74,7 @@ func TestNativeAutomationHost(t *testing.T) {
 	defer func() { minecraftProbe = previousProbe }()
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	deactivate := activateNativeTestManifest(t, filepath.Join(repo, "app.manifest"))
+	deactivate := activateNativeTestManifest(t, filepath.Join(repo, "resources", "windows", "app.manifest"))
 	defer deactivate()
 	background := os.Getenv("MINECRAFT_UI_FOREGROUND") != "1"
 	if err := runDesktop(background, false); err != nil {

@@ -3,10 +3,10 @@
 package main
 
 import (
-	"embed"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"minecraft-backup-tool/assets"
 	"runtime"
 	"syscall"
 	"unsafe"
@@ -14,9 +14,6 @@ import (
 
 // Keep the native test host and ordinary go builds usable without an RC resource.
 // Production always tries its compiled icon resources first.
-//
-//go:embed assets/app.ico assets/backup.ico assets/restore.ico assets/folder.ico assets/file.ico assets/refresh.ico assets/exit.ico
-var embeddedDesktopIcons embed.FS
 
 var desktopIconComctl32 = syscall.NewLazyDLL("comctl32.dll")
 
@@ -55,7 +52,7 @@ func loadDesktopIcon(instance uintptr, resource int, name string, width, height 
 	if icon != 0 {
 		return icon, nil
 	}
-	data, err := embeddedDesktopIcons.ReadFile("assets/" + name + ".ico")
+	data, err := assets.Icons.ReadFile(name + ".ico")
 	if err != nil {
 		return 0, fmt.Errorf("读取图标失败: %w", err)
 	}

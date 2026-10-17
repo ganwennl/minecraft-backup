@@ -1,12 +1,13 @@
 param(
     [switch] $TestHost,
     [string] $ResumeFixture,
-    [string] $ExePath = (Join-Path $PSScriptRoot 'Minecraft地图备份.exe')
+    [string] $ExePath = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'dist/Minecraft地图备份.exe')
 )
 
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
 # Reuse only the native API declarations; never execute the older smoke scenario.
 if (-not ('MinecraftNativeSmoke' -as [type])) {
@@ -77,7 +78,7 @@ function Get-StartupSnapshot {
 function Start-TestApp([bool] $Background) {
     $start = [Diagnostics.ProcessStartInfo]::new()
     $start.FileName = $script:exe
-    $start.WorkingDirectory = $PSScriptRoot
+    $start.WorkingDirectory = $repo
     $start.UseShellExecute = $false
     $start.WindowStyle = [Diagnostics.ProcessWindowStyle]::Hidden
     if ($script:TestHost) {
@@ -165,7 +166,7 @@ function Assert-ArchiveWorldBytes([string] $ArchiveName, [byte[]] $Expected) {
     } finally { $zip.Dispose() }
 }
 
-$exe = if ($TestHost) { Join-Path $PSScriptRoot 'build\MinecraftNativeIntegration.test.exe' } else { [IO.Path]::GetFullPath($ExePath) }
+$exe = if ($TestHost) { Join-Path $repo 'build\MinecraftNativeIntegration.test.exe' } else { [IO.Path]::GetFullPath($ExePath) }
 $testedProcessName = [IO.Path]::GetFileNameWithoutExtension($exe)
 Assert-Auto (Test-Path -LiteralPath $exe -PathType Leaf) '请先构建程序。'
 $alreadyRunning = @(if ($TestHost) {
@@ -178,11 +179,11 @@ $alreadyRunning = @(if ($TestHost) {
     catch { return $true }
 } })
 Assert-Auto ($alreadyRunning.Count -eq 0) '已有备份程序或 Minecraft 运行，无法隔离模拟游戏测试。'
-$fixture = Join-Path $PSScriptRoot ('build\automation-smoke-' + [Guid]::NewGuid().ToString('N'))
+$fixture = Join-Path $repo ('build\automation-smoke-' + [Guid]::NewGuid().ToString('N'))
 if ($ResumeFixture) {
     Assert-Auto ([bool] $TestHost) '-ResumeFixture 仅支持隔离测试宿主。'
     $fixture = [IO.Path]::GetFullPath($ResumeFixture)
-    $buildRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'build')) + [IO.Path]::DirectorySeparatorChar
+    $buildRoot = [IO.Path]::GetFullPath((Join-Path $repo 'build')) + [IO.Path]::DirectorySeparatorChar
     Assert-Auto ($fixture.StartsWith($buildRoot, [StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $fixture -PathType Container)) '续测目录必须是 repo/build 内已有的私有 fixture。'
 }
 $roaming = Join-Path $fixture 'Roaming'

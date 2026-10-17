@@ -1,4 +1,4 @@
-param([string] $ExePath = (Join-Path $PSScriptRoot 'Minecraft地图备份.exe'))
+param([string] $ExePath = (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'dist/Minecraft地图备份.exe'))
 
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 Set-StrictMode -Version Latest
@@ -119,7 +119,7 @@ function Assert-TreeHashes([string] $Root, [hashtable] $Expected) {
     }
 }
 
-$repo = $PSScriptRoot
+$repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $exe = [IO.Path]::GetFullPath($ExePath)
 Assert-True (Test-Path -LiteralPath $exe -PathType Leaf) '请先执行 build.ps1 生成程序。'
 $testedProcessName = [IO.Path]::GetFileNameWithoutExtension($exe)
